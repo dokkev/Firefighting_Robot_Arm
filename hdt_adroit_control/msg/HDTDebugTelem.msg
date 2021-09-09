@@ -1,9 +1,0 @@
-std_msgs/Header header
-uint8 index
-uint8 hs_samples
-int16 ls_var1
-int16 ls_var2
-int16 ls_var3
-int16[] hs_var1
-int16[] hs_var2
-uint32 crc
