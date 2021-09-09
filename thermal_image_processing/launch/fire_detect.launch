@@ -1,0 +1,27 @@
+<launch>
+
+<!-- start thermal_detection node -->
+  <!-- <node pkg="thermal_image_processing" type="thermal_detection" name="thermal_detection" /> -->
+
+
+ <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
+    <arg name="filters" default="pointcloud" />
+ </include>
+
+ <!-- <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="filters" default="pointcloud" />
+ </include> -->
+
+ <!-- <node pkg="tf" type="static_transform_publisher" name="kinect_broadcaster" args="0 0.1 0 0 0 3.14 pincer_housing_link camera_link" /> -->
+ <node pkg="tf" type="static_transform_publisher" name="kinect_broadcaster" args="0 0 0 1.57 0 -1.57 drive6_housing_link camera_link 100" />
+
+  <!-- start rqt_image_view for visualization -->
+ <node type="rqt_image_view" name="rqt_image_view" pkg="rqt_image_view" />
+
+ <node pkg="thermal_image_processing" type="combined_vision" name="combined_vision"/>
+ <node pkg="thermal_image_processing" type="get_depth" name="get_depth" />
+ <node pkg="thermal_image_processing" type="tf_listener" name="tf_listener" />
+
+
+
+</launch>

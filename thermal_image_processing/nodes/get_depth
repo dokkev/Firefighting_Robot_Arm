@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+import rospy
+from sensor_msgs.msg import PointCloud2
+import sensor_msgs.point_cloud2 as pc2
+from sensor_msgs.msg import Image 
+from sensor_msgs.msg import CameraInfo
+import geometry_msgs
+from cv_bridge import CvBridge, CvBridgeError
+import tf
+import math
+import sys
+import os
+import pyrealsense2 as rs2
+from std_msgs.msg import Float32
+from thermal_image_processing.msg import point_coord
+
+
+class DepthListener:
+
+    def __init__ (self,topic):
+        rospy.init_node('get_depth')
+        rospy.wait_for_message('/camera/aligned_depth_to_color/image_raw', Image, timeout=10)
+        rospy.wait_for_message('/object_x', Float32, timeout=10)
+        rospy.wait_for_message('/object_y', Float32, timeout=10)
+
+        self.topic = topic
+        self.bridge = CvBridge()
+        self.intrinsics = None
+        
+        self.ysub = rospy.Subscriber("/object_y", Float32 ,self.y_callback)
+        self.xsub = rospy.Subscriber("/object_x", Float32 ,self.x_callback)
+        self.aligned_image_sub = rospy.Subscriber(topic, Image, self.aligned_image_callback)
+        self.info_sub = rospy.Subscriber('/camera/aligned_depth_to_color/camera_info', CameraInfo, self.caminfo_callback)
+
+        self.point_coord_pub = rospy.Publisher('/point_coord',point_coord, queue_size=3)
+
+        self.tf_listener = tf.TransformListener
+       
+        self.r = rospy.Rate(5)
+
+    def y_callback(self,data):
+        self.y = int(data.data)
+    
+    def x_callback(self,data):
+        self.x = int(data.data)
+    
+    
+    def aligned_image_callback(self, data):
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(data, data.encoding)
+            pix = (self.x, self.y)
+            # sys.stdout.write('%s: Depth at (%d, %d): %f(mm)\r' % (self.topic, pix[0], pix[1], cv_image[pix[1], pix[0]]))
+            # sys.stdout.flush()
+            if self.intrinsics:
+                depth = cv_image[pix[1], pix[0]]
+                result = rs2.rs2_deproject_pixel_to_point(self.intrinsics, [pix[0], pix[1]], depth)
+                # print ('result:', result)
+            
+                points = point_coord()
+            
+                points.x = float(result[0])
+                points.y = float(result[1])
+                points.depth = float(depth)
+                print(points)
+
+                
+                self.point_coord_pub.publish(points)
+                self.r.sleep()
+           
+        except CvBridgeError as e:
+            print(e)
+            return
+
+
+    def caminfo_callback(self, cameraInfo):
+        try:
+    
+            if self.intrinsics:
+                return
+            self.intrinsics = rs2.intrinsics()
+            self.intrinsics.width = cameraInfo.width
+            self.intrinsics.height = cameraInfo.height
+            self.intrinsics.ppx = cameraInfo.K[2]
+            self.intrinsics.ppy = cameraInfo.K[5]
+            self.intrinsics.fx = cameraInfo.K[0]
+            self.intrinsics.fy = cameraInfo.K[4]
+            if cameraInfo.distortion_model == 'plumb_bob':
+                self.intrinsics.model = rs2.distortion.brown_conrady
+            elif cameraInfo.distortion_model == 'equidistant':
+                self.intrinsics.model = rs2.distortion.kannala_brandt4
+            self.intrinsics.coeffs = [i for i in cameraInfo.D]
+        except CvBridgeError as e:
+            print(e)
+            return
+
+
+
+    def main():
+        topic = '/camera/aligned_depth_to_color/image_raw'
+        depthlistener = DepthListener(topic)
+
+        rospy.spin()
+
+
+if __name__ == '__main__':
+    DepthListener.main()
+    rospy.spin()

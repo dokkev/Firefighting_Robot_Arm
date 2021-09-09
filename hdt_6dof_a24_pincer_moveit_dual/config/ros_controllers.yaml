@@ -1,0 +1,55 @@
+# Simulation settings for using moveit_sim_controllers
+moveit_sim_hw_interface:
+  joint_model_group: todo_group_name
+  joint_model_group_pose: todo_state_name
+# Settings for ros_control_boilerplate control loop
+generic_hw_control_loop:
+  loop_hz: 300
+  cycle_time_error_threshold: 0.01
+# Settings for ros_control hardware interface
+hardware_interface:
+  joints:
+    - leftjoint1
+    - leftjoint2
+    - leftjoint3
+    - leftjoint4
+    - leftjoint5
+    - leftjoint6
+    - leftpincer_joint
+    - rightjoint1
+    - rightjoint2
+    - rightjoint3
+    - rightjoint4
+    - rightjoint5
+    - rightjoint6
+    - rightpincer_joint
+  sim_control_mode: 1  # 0: position, 1: velocity
+# Publish all joint states
+# Creates the /joint_states topic necessary in ROS
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50
+
+controller_list:
+  - name: hdt_arm/left_arm_controller
+    action_ns: follow_joint_trajectory
+    default: True
+    type: FollowJointTrajectory
+    joints:
+      - leftjoint1
+      - leftjoint2
+      - leftjoint3
+      - leftjoint4
+      - leftjoint5
+      - leftjoint6
+  - name: hdt_arm/right_arm_controller
+    action_ns: follow_joint_trajectory
+    default: True
+    type: FollowJointTrajectory
+    joints:
+      - rightjoint1
+      - rightjoint2
+      - rightjoint3
+      - rightjoint4
+      - rightjoint5
+      - rightjoint6

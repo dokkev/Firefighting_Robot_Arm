@@ -1,0 +1,218 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
+# ROS integration
+import rospy
+from sensor_msgs.msg import Image
+from std_msgs.msg import Int16MultiArray
+from std_msgs.msg import MultiArrayDimension
+from std_msgs.msg import Float32
+from std_msgs.msg import Float32MultiArray
+from cv_bridge import CvBridge, CvBridgeError
+
+from uvctypes import *
+import time
+import cv2
+import numpy as np
+try:
+  from queue import Queue
+except ImportError:
+  from Queue import Queue
+import platform
+
+BUF_SIZE = 2
+q = Queue(BUF_SIZE)
+bridge = CvBridge()
+
+
+
+def py_frame_callback(frame, userptr):
+
+  array_pointer = cast(frame.contents.data, POINTER(c_uint16 * (frame.contents.width * frame.contents.height)))
+  data = np.frombuffer(
+    array_pointer.contents, dtype=np.dtype(np.uint16)
+  ).reshape(
+    frame.contents.height, frame.contents.width)
+
+
+  if frame.contents.data_bytes != (2 * frame.contents.width * frame.contents.height):
+    return
+
+  if not q.full():
+    q.put(data)
+
+PTR_PY_FRAME_CALLBACK = CFUNCTYPE(None, POINTER(uvc_frame), c_void_p)(py_frame_callback)
+
+def ktof(val):
+  return (1.8 * ktoc(val) + 32.0)
+
+def ktoc(val):
+  return (val - 27315) / 100.0
+
+def raw_to_8bit(data):
+  cv2.normalize(data, data, 0, 65535, cv2.NORM_MINMAX)
+  np.right_shift(data, 8, data)
+  return cv2.cvtColor(np.uint8(data), cv2.COLOR_GRAY2RGB)
+
+def display_temperature(img, val_k, loc, color):
+  # val = ktof(val_k)
+  val = ktoc(val_k)
+
+  cv2.putText(img,"{0:.1f} degC".format(val), loc, cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2)
+  x, y = loc
+  cv2.line(img, (x - 2, y), (x + 2, y), color, 1)
+  cv2.line(img, (x, y - 2), (x, y + 2), color, 1)
+
+def depth_image_callback(data):
+  global depth_image
+  depth_image = bridge.imgmsg_to_cv2(data,desired_encoding="passthrough")
+
+def color_image_callback(data):
+  global color_image
+  color_image = bridge.imgmsg_to_cv2(data,desired_encoding="passthrough")
+
+
+def main():
+  # Ros Integration
+
+  rospy.init_node('combined_vision', anonymous=True)
+  rospy.wait_for_message('/camera/aligned_depth_to_color/image_raw', Image, timeout=5)
+  bgr_image_pub = rospy.Publisher('thermal_camera/thermal_image_bgr',Image, queue_size=10)
+  gray_image_pub = rospy.Publisher('thermal_camera/thermal_image_gray',Image, queue_size=10)
+  combined_image_pub = rospy.Publisher('/combined_image',Image, queue_size=10)
+  combined_image_pub2 = rospy.Publisher('/combined_image2',Image, queue_size=10)
+  stacked_image_pub = rospy.Publisher('/stacked_image',Image, queue_size=10)
+  temp_pub = rospy.Publisher('highest_T_detected',Float32,queue_size=10)
+  xcoord_pub = rospy.Publisher('object_x',Float32,queue_size=10)
+  ycoord_pub = rospy.Publisher('object_y',Float32,queue_size=10)
+
+  depth_image_sub = rospy.Subscriber("/camera/aligned_depth_to_color/image_raw", Image, callback=depth_image_callback)
+  color_image_sub = rospy.Subscriber("/camera/color/image_raw",Image, callback = color_image_callback)
+ 
+
+
+  ctx = POINTER(uvc_context)()
+  dev = POINTER(uvc_device)()
+  devh = POINTER(uvc_device_handle)()
+  ctrl = uvc_stream_ctrl()
+
+
+
+  res = libuvc.uvc_init(byref(ctx), 0)
+  if res < 0:
+    print("uvc_init error")
+    exit(1)
+
+  try:
+    res = libuvc.uvc_find_device(ctx, byref(dev), PT_USB_VID, PT_USB_PID, 0)
+    if res < 0:
+      print("uvc_find_device error")
+      exit(1)
+
+    try:
+      res = libuvc.uvc_open(dev, byref(devh))
+      if res < 0:
+        print("uvc_open error")
+        exit(1)
+
+      print("device opened!")
+
+      print_device_info(devh)
+      print_device_formats(devh)
+
+      frame_formats = uvc_get_frame_formats_by_guid(devh, VS_FMT_GUID_Y16)
+      if len(frame_formats) == 0:
+        print("device does not support Y16")
+        exit(1)
+
+      libuvc.uvc_get_stream_ctrl_format_size(devh, byref(ctrl), UVC_FRAME_FORMAT_Y16,
+        frame_formats[0].wWidth, frame_formats[0].wHeight, int(1e7 / frame_formats[0].dwDefaultFrameInterval)
+      )
+
+      res = libuvc.uvc_start_streaming(devh, byref(ctrl), PTR_PY_FRAME_CALLBACK, None, 0)
+      if res < 0:
+        print("uvc_start_streaming failed: {0}".format(res))
+        exit(1)
+
+      try:
+        while not rospy.is_shutdown():
+          data = q.get(True, 500)
+          if data is None:
+            break
+  
+          # Raw Sensor Data to GrayScale Image
+          data = cv2.resize(data[:,:], (640, 480))   
+          minVal, maxVal, minLoc, maxLoc = cv2.minMaxLoc(data)
+       
+          img = raw_to_8bit(data)
+        
+
+          # image_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+          # print(image_rgb.shape)
+       
+          # display_temperature(img, minVal, minLoc, (0, 0, 255))
+          max_temp = ktoc(maxVal)
+          temp_pub.publish(max_temp)
+          xcoord_pub.publish(maxLoc[0])
+          ycoord_pub.publish(maxLoc[1])
+
+      
+          # display max temperature
+          display_temperature(img, maxVal, maxLoc, (255, 0, 0))
+        
+
+          # Publish Gray Scale Img for visualization
+          try:
+            gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            gray_img16 = (gray_img*256).astype("uint16")
+
+            depth_img = depth_image
+            color_img = color_image
+            thermal_img = img
+
+            thermal_img16 = (img*256).astype("uint16")
+            depth_img8 = cv2.convertScaleAbs(depth_img, alpha=0.05)
+            
+            stacked_img = np.concatenate((depth_img8, gray_img),axis=1)
+            combined_img = cv2.addWeighted(depth_img8, 0.5, gray_img, 0.5, 0)
+            combined_img2 = cv2.addWeighted(color_img, 0.3, thermal_img, 0.7, 0)
+
+            # print(color_image.shape)
+
+            bgr_image_pub.publish(bridge.cv2_to_imgmsg(img, "rgb8"))
+            gray_image_pub.publish(bridge.cv2_to_imgmsg(gray_img, 'mono8'))
+            stacked_image_pub.publish(bridge.cv2_to_imgmsg(stacked_img, encoding="passthrough"))
+            combined_image_pub.publish(bridge.cv2_to_imgmsg(combined_img, encoding="passthrough"))
+            combined_image_pub2.publish(bridge.cv2_to_imgmsg(combined_img2, encoding="rgb8"))
+
+            
+            
+            # depth_image_ = cv2.resize(depth_image[:,:], (640, 480))
+            # combined_img = images_overlay(depth_8bit, img)
+            # combined_image_pub.publish(bridge.cv2_to_imgmsg(data, "rgb8"))
+          except CvBridgeError as e:
+            print(e)
+
+          cv2.waitKey(1)
+
+        cv2.destroyAllWindows()
+      finally:
+        libuvc.uvc_stop_streaming(devh)
+
+      print("done")
+    finally:
+      libuvc.uvc_unref_device(dev)
+  finally:
+    libuvc.uvc_exit(ctx)
+
+
+
+
+
+if __name__ == '__main__':
+
+  try:
+    main()
+  except KeyboardInterrupt:
+    print("Shutting down")

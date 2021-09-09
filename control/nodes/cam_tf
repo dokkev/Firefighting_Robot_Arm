@@ -1,0 +1,33 @@
+#!/usr/bin/env python
+
+import rospy
+import geometry_msgs.msg
+import tf2_ros
+
+
+if __name__ == "__main__":
+    broadcaster = tf2_ros.StaticTransformBroadcaster()
+    rospy.init_node("cam_tf")
+    try:
+        while (True):
+            # Now create the transform, noted that it must have a parent frame and a timestamp
+            # The header contains the timing information and frame id
+            world_base_tf = geometry_msgs.msg.TransformStamped()
+            world_base_tf.header.stamp = rospy.Time.now()
+            world_base_tf.header.frame_id = "pincer_housing_link"
+            world_base_tf.child_frame_id = "camera_bottom_screw_frame"
+
+            # The base frame will be raised in the z direction by 1 meter and be aligned with world
+            world_base_tf.transform.translation.x = 0
+            world_base_tf.transform.translation.y = 0
+            world_base_tf.transform.translation.z = 0
+            world_base_tf.transform.rotation.x = 0
+            world_base_tf.transform.rotation.y = 0
+            world_base_tf.transform.rotation.z = 0
+            world_base_tf.transform.rotation.w = 1
+
+            broadcaster.sendTransform(world_base_tf)
+            print("transforming!")
+    except KeyboardInterrupt:
+        print('interrupted!')   
+    

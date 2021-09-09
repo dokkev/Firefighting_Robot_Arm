@@ -1,0 +1,285 @@
+<?xml version="1.0" ?>
+<!--This does not replace URDF, and is not an extension of URDF.
+    This is a format for representing semantic information about the robot structure.
+    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
+-->
+<robot name="hdt_arm">
+    <!--GROUPS: Representation of a set of joints and links. This can be useful for specifying DOF to plan for, defining arms, end effectors, etc-->
+    <!--LINKS: When a link is specified, the parent joint of that link (if it exists) is automatically included-->
+    <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
+    <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
+    <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
+    <group name="left_arm">
+        <chain base_link="leftbase_link" tip_link="leftendpoint_link" />
+    </group>
+    <group name="right_arm">
+        <chain base_link="rightbase_link" tip_link="rightendpoint_link" />
+    </group>
+    <group name="left_hand">
+        <joint name="leftpincer_joint" />
+        <joint name="leftpincerfinger_left" />
+        <joint name="leftpincerfinger_right" />
+    </group>
+    <group name="right_hand">
+        <joint name="rightpincer_joint" />
+        <joint name="rightpincerfinger_left" />
+        <joint name="rightpincerfinger_right" />
+    </group>
+    <group name="dual_arm">
+        <group name="right_arm" />
+        <group name="left_arm" />
+    </group>
+    <group name="dual_hand">
+        <joint name="leftpincerfinger_right" />
+        <joint name="leftpincerfinger_left" />
+        <joint name="leftpincer_joint" />
+        <joint name="rightpincerfinger_right" />
+        <joint name="rightpincerfinger_left" />
+        <joint name="rightpincer_joint" />
+    </group>
+    <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
+    <end_effector name="left_pincer" parent_link="leftpincer_housing_link" group="left_hand" parent_group="left_arm" />
+    <end_effector name="right_pincer" parent_link="rightpincer_housing_link" group="right_hand" parent_group="right_arm" />
+    <end_effector name="dual_pincer" parent_link="leftpincer_housing_link" group="dual_hand" parent_group="dual_arm" />
+    <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
+    <disable_collisions link1="leftdistal_tube_link" link2="leftdrive1_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftdrive2_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftdrive4_housing_link" reason="Adjacent" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftdrive5_housing_link" reason="Adjacent" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="leftpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="rightdistal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdistal_tube_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="leftdrive2_link" reason="Adjacent" />
+    <disable_collisions link1="leftdrive1_link" link2="leftdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="leftdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="leftdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="leftdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="leftelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="leftpedestal_link" reason="Adjacent" />
+    <disable_collisions link1="leftdrive1_link" link2="leftproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightdistal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftdrive1_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="leftdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="leftdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="leftdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="leftdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="leftelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="leftpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="leftproximal_tube_link" reason="Adjacent" />
+    <disable_collisions link1="leftdrive2_link" link2="rightdistal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftdrive2_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftelbow_box_link" reason="Adjacent" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="leftproximal_tube_link" reason="Adjacent" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightdistal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive3_housing_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="leftdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="leftdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="leftelbow_box_link" reason="Adjacent" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="leftpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="leftpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="leftpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="leftproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightdistal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdrive4_housing_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="leftdrive6_housing_link" reason="Adjacent" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="leftelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="leftpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="leftpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="leftpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdrive5_housing_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="leftelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="leftpincer_housing_link" reason="Adjacent" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="leftpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="leftpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftdrive6_housing_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="leftpedestal_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="leftpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="leftpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="leftpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="leftproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightdistal_tube_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftelbow_box_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightdistal_tube_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightpedestal_link" reason="Adjacent" />
+    <disable_collisions link1="leftpedestal_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftpedestal_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftpincer_housing_link" link2="leftpincerfinger_left_link" reason="Adjacent" />
+    <disable_collisions link1="leftpincer_housing_link" link2="leftpincerfinger_right_link" reason="Adjacent" />
+    <disable_collisions link1="leftpincer_housing_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftpincer_housing_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftpincer_housing_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftpincer_housing_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftpincer_housing_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftpincer_housing_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="leftpincerfinger_right_link" reason="Default" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_left_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_right_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_right_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_right_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_right_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftpincerfinger_right_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightdistal_tube_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="leftproximal_tube_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightdrive1_link" reason="Never" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightdrive2_link" reason="Never" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightdrive4_housing_link" reason="Adjacent" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightdrive5_housing_link" reason="Adjacent" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="rightdistal_tube_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="rightdrive1_link" link2="rightdrive2_link" reason="Adjacent" />
+    <disable_collisions link1="rightdrive1_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive1_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive1_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive1_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive1_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="rightdrive1_link" link2="rightpedestal_link" reason="Adjacent" />
+    <disable_collisions link1="rightdrive1_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="rightdrive2_link" link2="rightdrive3_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive2_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive2_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive2_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive2_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="rightdrive2_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="rightdrive2_link" link2="rightproximal_tube_link" reason="Adjacent" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightdrive4_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightelbow_box_link" reason="Adjacent" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="rightdrive3_housing_link" link2="rightproximal_tube_link" reason="Adjacent" />
+    <disable_collisions link1="rightdrive4_housing_link" link2="rightdrive5_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive4_housing_link" link2="rightdrive6_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive4_housing_link" link2="rightelbow_box_link" reason="Adjacent" />
+    <disable_collisions link1="rightdrive4_housing_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive4_housing_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="rightdrive4_housing_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="rightdrive4_housing_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="rightdrive5_housing_link" link2="rightdrive6_housing_link" reason="Adjacent" />
+    <disable_collisions link1="rightdrive5_housing_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="rightdrive5_housing_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="rightdrive5_housing_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="rightdrive5_housing_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="rightdrive6_housing_link" link2="rightelbow_box_link" reason="Never" />
+    <disable_collisions link1="rightdrive6_housing_link" link2="rightpincer_housing_link" reason="Adjacent" />
+    <disable_collisions link1="rightdrive6_housing_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="rightdrive6_housing_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="rightelbow_box_link" link2="rightpedestal_link" reason="Never" />
+    <disable_collisions link1="rightelbow_box_link" link2="rightpincer_housing_link" reason="Never" />
+    <disable_collisions link1="rightelbow_box_link" link2="rightpincerfinger_left_link" reason="Never" />
+    <disable_collisions link1="rightelbow_box_link" link2="rightpincerfinger_right_link" reason="Never" />
+    <disable_collisions link1="rightelbow_box_link" link2="rightproximal_tube_link" reason="Never" />
+    <disable_collisions link1="rightpincer_housing_link" link2="rightpincerfinger_left_link" reason="Adjacent" />
+    <disable_collisions link1="rightpincer_housing_link" link2="rightpincerfinger_right_link" reason="Adjacent" />
+    <disable_collisions link1="rightpincerfinger_left_link" link2="rightpincerfinger_right_link" reason="Default" />
+</robot>

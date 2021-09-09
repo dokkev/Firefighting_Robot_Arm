@@ -1,0 +1,605 @@
+#!/usr/bin/env python3
+
+import sys
+import copy
+import rospy
+import moveit_commander
+import moveit_msgs.msg
+import geometry_msgs.msg
+import tf2_ros
+from math import pi
+from std_msgs.msg import String
+from std_srvs.srv import Empty, EmptyResponse
+from moveit_commander.conversions import pose_to_list
+from std_msgs.msg   import Float32,Float64
+
+class Control:
+
+    def __init__(self):
+        """
+        Initialize and setup the Motion Planning Scence
+        """
+        moveit_commander.roscpp_initialize(sys.argv)
+        self.robot = moveit_commander.RobotCommander()
+        self.scene = moveit_commander.PlanningSceneInterface()
+        self.br = tf2_ros.TransformBroadcaster()
+        self.static_br = tf2_ros.StaticTransformBroadcaster
+
+        self.ysub = rospy.Subscriber("object_y", Float32 ,self.y_callback)
+        self.xsub = rospy.Subscriber("object_x", Float32 ,self.x_callback)
+        self.Tsub = rospy.Subscriber("highest_T_detected", Float32, self.T_callback)
+
+        # /hdt_arm/pincer_joint_position_controller/command
+        self.pincer_pub = rospy.Publisher("/hdt_arm/pincer_joint_position_controller/command", Float64,queue_size=10)
+
+        # Generate ROS services
+        self.service_ready = rospy.Service("ready", Empty, self.ready)
+        self.service_grab_ready = rospy.Service("grab_ready",Empty,self.grab_ready)
+        self.service_search = rospy.Service("search", Empty, self.search)
+        self.service_locate = rospy.Service("locate", Empty, self.locate)
+        self.service_press = rospy.Service("press", Empty, self.press)
+        self.service_open = rospy.Service("open", Empty, self.open)
+        self.service_grab = rospy.Service("grab", Empty, self.grab)
+        self.service_drop_off = rospy.Service("drop_off",Empty,self.drop_off)
+        self.service_moveup = rospy.Service("moveup", Empty, self.moveup)
+        self.service_pose_move = rospy.Service("pose_move",Empty,self.pose_move)
+        self.service_pose_add = rospy.Service("pose_add",Empty,self.pose_add)
+        self.service_get_current_joint_values = rospy.Service("get_current_joint_values",Empty,self.get_current_joint_values)
+        self.service_joint_add = rospy.Service("joint_add",Empty,self.joint_add)
+        self.service_joint_move = rospy.Service("joint_move",Empty,self.joint_move)
+        self.service_pincer_move = rospy.Service("pincer_move",Empty,self.pincer_move)
+
+        group_name = 'arm'
+        self.group = moveit_commander.MoveGroupCommander(group_name)
+
+        pincer_group_name = 'pincer'
+        self.pincer_group = moveit_commander.MoveGroupCommander(pincer_group_name)
+
+        self.scene = moveit_commander.PlanningSceneInterface()
+        display_trajectory_publisher = rospy.Publisher("move_group/display_planned_path", moveit_msgs.msg.DisplayTrajectory, queue_size=20)
+        self.display_trajectory_publisher = display_trajectory_publisher
+
+        rospy.init_node('arm_control', anonymous=True)
+        self.rate = rospy.Rate(120)
+
+        planning_frame = self.group.get_planning_frame()
+        print("============ Reference frame: %s" % planning_frame)
+        global eef_link
+        eef_link = self.group.get_end_effector_link()
+        print("============ End effector: %s" % eef_link)
+        group_names = self.robot.get_group_names()
+        print("============ Robot Groups:", self.robot.get_group_names())
+        print("============ Printing robot state")
+        print(self.robot.get_current_state())
+        print("")
+        print("========================================= \n")
+        print("Hello! This is an arm control node of the Adroit!")
+
+        ready = rospy.ServiceProxy("ready", Empty)
+        grab_ready = rospy.ServiceProxy("grab_ready",Empty)
+        search = rospy.ServiceProxy("search",Empty)
+        locate = rospy.ServiceProxy("locate",Empty)
+        press = rospy.ServiceProxy("press",Empty)
+        p_open = rospy.ServiceProxy("open",Empty)
+        p_grab = rospy.ServiceProxy("grab",Empty)
+        p_drop_off = rospy.ServiceProxy("drop_off",Empty)
+        moveup = rospy.ServiceProxy("moveup",Empty)
+        pose_move = rospy.ServiceProxy("pose_move",Empty)
+        pose_add = rospy.ServiceProxy("pose_add",Empty)
+        get_current_joint_values = rospy.ServiceProxy("get_current_joint_values",Empty)
+        joint_move = rospy.ServiceProxy("joint_move",Empty)
+        joint_add = rospy.ServiceProxy("joint_add",Empty)
+        pincer_move = rospy.ServiceProxy("pincer_move",Empty)
+
+
+
+        global grab_status
+        fire_status = 0
+        grab_status = 0
+
+        global grab_angle
+        grab_angle = 0.23
+        global home_joint
+        home_joint = [0,0,0,-90,-85,95]
+        
+        ###################
+        ## initial setup ##
+        ###################
+
+        # setup moveit enviroment
+        self.setup_env()
+        # sleep
+        rospy.sleep(1)
+        # move to default position
+        grab_ready()
+        # print current joint values
+        get_current_joint_values()
+
+    
+       
+    def y_callback(self,data):
+        global y
+        y = data.data
+        # rospy.loginfo("I heard %f",y)
+    def x_callback(self,data):
+        global x
+        x = data.data
+        # rospy.loginfo("I heard %f",y)
+
+    def T_callback(self,data):
+        global T_max
+        T_max = data.data
+
+    def get_current_joint_values(self,val):
+        j = self.group.get_current_joint_values()
+        print("====== Current Joint Angles (deg) =====")
+        print("\n   Joint 1: ",self.rad(j[0]))
+        print("\n   Joint 2: ",self.rad(j[1]))
+        print("\n   Joint 3: ",self.rad(j[2]))
+        print("\n   Joint 4: ",self.rad(j[3]))
+        print("\n   Joint 5: ",self.rad(j[4]))
+        print("\n   Joint 6: ",self.rad(j[5]))
+
+        return []
+
+
+    def deg(self,val):
+        """
+        convert degree to radian
+        """
+        degree = float(val) * (pi/180)
+        return degree
+
+    def rad(self,val):
+        """
+        convert radian to degree
+        """
+        rad = val / (pi/180)
+        return rad
+
+    def press(self,val):
+        
+        self.pincer_pub.publish(0.1)
+
+        return []
+
+    def pincer_move(self,val):
+        theta_in = input("Target Pincer angle (0.1 ~ 0.8): ")
+        self.pincer_pub.publish(float(theta_in))
+        print("Pincer angle now at: ", theta_in)
+
+        return []
+
+    def joint_control(self,j_mat):
+        print("..Executing movement")
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[0] = self.deg(j_mat[0])
+        self.joint_goal[1] = self.deg(j_mat[1])
+        self.joint_goal[2] = self.deg(j_mat[2])
+        self.joint_goal[3] = self.deg(j_mat[3])
+        self.joint_goal[4] = self.deg(j_mat[4])
+        self.joint_goal[5] = self.deg(j_mat[5])
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        print("...Completed!")
+       
+
+    def relative_pose_control(self,p_mat):
+        print("..Executing movement")
+        self.pose_goal = self.group.get_current_pose(eef_link)
+        self.pose_goal.pose.position.x += p_mat[0]
+        self.pose_goal.pose.position.y += p_mat[1]
+        self.pose_goal.pose.position.z += p_mat[2]
+        self.group.set_pose_target(self.pose_goal)
+        self.plan = self.group.go(wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        print("...Completed!")
+
+    def grab(self,val):
+       
+        # open the pincer wide
+        self.pincer_pub.publish(0.8)
+
+        # pre-grab position
+        joint_target1 = [143,9,-31,-101,-56,118]
+        self.joint_control(joint_target1)
+    
+        # move in a straight line to grab
+        joint_target2 = [170.04,-13.49,-5.58,-118.65,-32.08,127.29]
+        self.joint_control(joint_target2)
+        rospy.sleep(1)
+  
+        # close the gripper a little bit
+        self.pincer_pub.publish(0.35)
+        rospy.sleep(1)
+
+        # twist the "wrist"
+        joint_target3 = [170.04,-13.49,-5.58,-118.65,-32.08,137.29]
+        self.joint_control(joint_target3)
+        rospy.sleep(1)
+
+        # close the gripper
+        self.pincer_pub.publish(0.25)
+        rospy.sleep(1)
+
+        # twist the "wrist" again
+        joint_target4 = [170.04,-13.49,-5.58,-118.65,-32.08,147.29]
+        self.joint_control(joint_target4)
+        rospy.sleep(1)
+
+        # close the gripper
+        self.pincer_pub.publish(0.18)
+        rospy.sleep(1)
+
+        # move in z-direction up
+        self.relative_pose_control([0,0,0.1])
+        rospy.sleep(1)
+        global pickup_joint
+        pickup_joint = self.group.get_current_joint_values()
+        print(pickup_joint)
+
+        # comeback to home position
+        joint_target5 = [0,0,0,-90,-85,125]
+        self.joint_control(joint_target5)
+        rospy.sleep(1)
+
+        # grab status is TRUE now
+        grab_status = 1
+
+        return []
+
+
+    def drop_off(self,val):
+
+        # comeback to home position
+        joint_target1 = [0,0,0,-90,-85,125]
+        self.joint_control(joint_target1)
+        rospy.sleep(1)
+
+        # go above the circle
+        joint_target2 = [170,0,0,-90,-85,125]
+        self.joint_control(joint_target2)
+        rospy.sleep(1)
+
+        # go to the "pickup joint"
+        self.joint_goal = pickup_joint
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        rospy.sleep(1)
+
+        # go down a littlbe bit
+        self.relative_pose_control([0,0,-0.05])
+
+        # Twist the wrist
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[5] += self.deg(20)
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        rospy.sleep(1)
+
+        # adjust
+        self.relative_pose_control([-0.015,0,0])
+        rospy.sleep(1)
+
+        self.pincer_pub.publish(0.35)
+        rospy.sleep(1)
+
+        # Twist the wrist
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[5] += self.deg(-10)
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        rospy.sleep(1)
+
+        self.pincer_pub.publish(0.4)
+        rospy.sleep(1)
+
+        # Twist the wrist
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[5] += self.deg(-10)
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        rospy.sleep(1)
+
+        # pre-grab position
+        joint_target6 = [143,9,-31,-101,-56,118]
+        self.joint_control(joint_target6)
+        rospy.sleep(1)
+
+        self.joint_control(home_joint)
+
+        rospy.sleep(1)
+        
+        return []
+
+    def open(self,val):
+
+        self.pincer_pub.publish(0.4)
+
+        return []
+
+    def locate(self,val):
+
+        self.pincer_pub.publish(grab_angle)
+        self.joint_goal = fire_joint 
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        return []
+
+    
+    def look_down(self):
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[0] = 0
+        self.joint_goal[1] = 0
+        self.joint_goal[2] = 0
+        self.joint_goal[3] = - 90*pi/180
+        self.joint_goal[4] = -85*pi/180
+        self.joint_goal[5] = 75*pi/180
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        return []
+
+    def search(self,val):
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[0] = 0
+        self.joint_goal[1] = 0
+        self.joint_goal[2] = 0
+        self.joint_goal[3] = - 90*pi/180
+        self.joint_goal[4] = -85*pi/180
+        self.joint_goal[5] = 70*pi/180
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        self.pincer_pub.publish(grab_angle)
+        self.joint_goal = self.group.get_current_joint_values()
+        
+        j1 = -0.2
+        
+        while T_max < 70.0:
+    
+            self.joint_goal[0] = j1
+            self.joint_goal[5] = 110*pi/180
+            self.group.go(self.joint_goal, wait=True)
+            self.joint_goal[5] = 70*pi/180
+            self.group.go(self.joint_goal, wait=True)
+            j1 = j1 - 0.4
+
+         
+        self.group.stop()
+
+        # Resolution is 640 X 480
+        half_x = 640/2 # this is half of the resolution for x
+        half_y = 480/2 # this is half of the resouution for y
+        movement = 0.005 * pi
+
+        # 2D x-control (pose.y control for robot)
+
+        # if the location of the fire is on the right side of the screen
+        if x > half_x:
+            while x > half_x:
+                self.joint_goal = self.group.get_current_joint_values()
+                self.joint_goal[0] = self.joint_goal[0] - movement
+                self.group.go(self.joint_goal, wait=True)
+               
+
+        if x < half_x:
+            while x < half_x:
+                self.joint_goal = self.group.get_current_joint_values()
+                self.joint_goal[0] = self.joint_goal[0] + movement
+                self.group.go(self.joint_goal, wait=True)
+
+        if y > half_y:
+            while y > half_y:
+                self.joint_goal = self.group.get_current_joint_values()
+                self.joint_goal[2] = self.joint_goal[2] - movement
+                self.group.go(self.joint_goal, wait=True)
+        
+        if y < half_y:
+            while y < half_y:
+                self.joint_goal = self.group.get_current_joint_values()
+                self.joint_goal[2] = self.joint_goal[2] + movement
+                self.group.go(self.joint_goal, wait=True)
+
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[0] = self.joint_goal[0] - 0.05*pi
+        self.group.go(self.joint_goal, wait=True)
+
+        self.group.stop()
+
+        global fire_joint
+        fire_joint = self.group.get_current_joint_values()
+
+        return []
+   
+    def move(self):
+        self.pose_goal = geometry_msgs.msg.Pose
+        self.pose_goal.orientation.w = 1.0
+        self.pose_goal.position.x = 0.4
+        self.pose_goal.position.y = 0.1
+        self.pose_goal.position.z = 0.4
+        self.group.set_pose_target(self.pose_goal)
+        self.plan = self.group.go(wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+
+    def pose_move(self,val):
+        print("Execute a pose movement to desired the absolute xyz coordinate \n")
+        x_in = input("Target x: ")
+        y_in = input("Target y: ")
+        z_in = input("Target z: ")
+        self.pose_goal = geometry_msgs.msg.Pose
+        self.pose_goal.position.x = float(x_in)
+        self.pose_goal.position.y = float(y_in)
+        self.pose_goal.position.z = float(z_in)
+        self.group.set_pose_target(self.pose_goal)
+        self.plan = self.group.go(wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+
+        return []
+
+    def pose_add(self,val):
+        print("Execute a pose movement by adding desired values from current position ")
+        x_in = input("\nAdd x: ")
+        y_in = input("\nAdd y: ")
+        z_in = input("\nAdd z: ")
+        print("..Executing movement")
+        self.pose_goal = self.group.get_current_pose(eef_link)
+        self.pose_goal.pose.position.x += float(x_in)
+        self.pose_goal.pose.position.y += float(y_in)
+        self.pose_goal.pose.position.z += float(z_in)
+        self.group.set_pose_target(self.pose_goal)
+        self.plan = self.group.go(wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        print("...Completed!")
+        
+        return []
+
+    def joint_move(self,val):
+        print("Execute a joint movement to desired angles (deg)")
+        j1_in = input("\nTarget Joint 1: ")
+        j2_in = input("\nTarget Joint 2: ")
+        j3_in = input("\nTarget Joint 3: ")
+        j4_in = input("\nTarget Joint 4: ")
+        j5_in = input("\nTarget  Joint 5: ")
+        j6_in = input("\nTarget  Joint 6: ")
+        print("..Executing movement")
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[0] = self.deg(j1_in)
+        self.joint_goal[1] = self.deg(j2_in)
+        self.joint_goal[2] = self.deg(j3_in)
+        self.joint_goal[3] = self.deg(j4_in)
+        self.joint_goal[4] = self.deg(j5_in)
+        self.joint_goal[5] = self.deg(j6_in)
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        print("...Completed!")
+        self.get_current_joint_values(val)
+     
+        return []
+
+
+    def joint_add(self,val):
+        print("Execute a joint movement by adding desired angles (deg) from current joint angles")
+        j1_in = input("\nAdd on Joint 1: ")
+        j2_in = input("\nAdd on Joint 2: ")
+        j3_in = input("\nAdd on Joint 3: ")
+        j4_in = input("\nAdd on Joint 4: ")
+        j5_in = input("\nAdd on Joint 5: ")
+        j6_in = input("\nAdd on Joint 6: ")
+        print("..Executing movement")
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[0] += self.deg((j1_in))
+        self.joint_goal[1] += self.deg((j2_in))
+        self.joint_goal[2] += self.deg((j3_in))
+        self.joint_goal[3] += self.deg((j4_in))
+        self.joint_goal[4] += self.deg((j5_in))
+        self.joint_goal[5] += self.deg((j6_in))
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        print("...Completed!")
+        self.get_current_joint_values(val)
+     
+        return []
+
+    def moveup(self,val):
+        """
+        move end-effecter up to x-direction
+        This is a test function
+        """
+        self.pose_goal = self.group.get_current_pose(eef_link)
+        self.pose_goal.pose.position.x += 0.1
+        self.group.set_pose_target(self.pose_goal)
+        self.plan = self.group.go(wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()  
+
+        return []
+
+    def ready(self,val):
+
+        """
+        Service can be called by rosservice
+        Sends the arm back to its 'ready' position
+        """
+        
+        self.group.set_named_target("ready")
+        self.group.go()
+        return []
+
+
+    def grab_ready(self,val):
+        self.joint_goal = self.group.get_current_joint_values()
+        self.joint_goal[0] = 0
+        self.joint_goal[1] = 0
+        self.joint_goal[2] = 0
+        self.joint_goal[3] = - 90*pi/180
+        self.joint_goal[4] = -85*pi/180
+        self.joint_goal[5] = 95*pi/180
+        self.group.go(self.joint_goal, wait=True)
+        self.group.stop()
+        self.group.clear_pose_targets()
+        self.pincer_pub.publish(0.4)
+
+        return []
+    
+    def setup_env(self):
+
+        ## Publish World frame connected to base_link
+        # tf = geometry_msgs.msg.TransformStamped()
+        # tf.header.stamp = rospy.Time.now()
+        # tf.header.frame_id = "world"
+        # tf.child_frame_id = "base_link"
+        # tf.transform.translation.x = 0
+        # tf.transform.translation.y = 0
+        # tf.transform.translation.z = 0
+        # tf.transform.rotation.x = 0
+        # tf.transform.rotation.y = 0
+        # tf.transform.rotation.z = 0
+        # tf.transform.rotation.w = 1
+        # self.static_br.sendTransform(tf)
+
+
+        ## Add objects into Moveit enviroment
+        # Table
+        self.table_pose = geometry_msgs.msg.PoseStamped()
+        self.table_pose.header.frame_id = 'base_link'
+        self.table_pose.pose.position.x = 0.
+        self.table_pose.pose.position.y = 0.
+        self.table_pose.pose.position.z = -0.01/2
+        self.scene.add_cylinder("table", self.table_pose, 0.01, 0.5)
+
+        # Power Supply 
+        self.box_pose = geometry_msgs.msg.PoseStamped()
+        self.box_pose.header.frame_id = 'base_link'
+        self.box_pose.pose.position.x = 0
+        self.box_pose.pose.position.y = 0.15
+        self.box_pose.pose.position.z = 0.15/4
+        self.scene.add_box("obstacle", self.box_pose, size=(grab_angle/2, 0.15/2, 0.15/2))
+
+        # Cylinder
+        self.cylinder_pose = geometry_msgs.msg.PoseStamped()
+        self.cylinder_pose.header.frame_id = 'base_link'
+        self.cylinder_pose.pose.position.x = 0.5
+        self.cylinder_pose.pose.position.y = 0
+        self.cylinder_pose.pose.position.z = 0.15
+        # self.scene.add_cylinder("fire extinguisher", self.cylinder_pose, 0.3, 0.04)
+
+        print("loop!")
+
+if __name__ == "__main__":
+  
+    Control()
+    rospy.spin()
+        

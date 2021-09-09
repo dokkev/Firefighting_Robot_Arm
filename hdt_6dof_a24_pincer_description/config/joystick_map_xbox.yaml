@@ -1,0 +1,56 @@
+joystick_map/joint1: {input: 'axes', axisA: 0, invert: true}
+joystick_map/joint2: {input: 'axes', axisA: 1, invert: true}
+joystick_map/joint3: {input: 'axes', axisA: 3, invert: true}
+joystick_map/joint4: {input: 'axes', axisA: 4, invert: false}
+joystick_map/joint5: {input: 'axes', axisA: 6, invert: false}
+joystick_map/joint6: {input: 'axes', axisA: 7, invert: true}
+joystick_map/pincer_joint: {input: 'axes', axisA: 2, axisB: 5, invert: false}
+
+
+# settings used in python control scripts
+# stop sending commands to drives
+# ds4 controller cross button, button[0]
+# xbox controller A button, button[0]
+button_map/stop_control: {input: 'buttons', axisA: 0, invert: false}
+# enable mirrored control of arms?
+# ds4 controller circle button, button[1]
+# xbox controller B button, button [1]
+button_map/mirror_mode: {input: 'buttons', axisA: 1, invert: false}
+# start joystick control
+# ds4 controller square button, button[3]
+# xbox controll X button, button [2]
+button_map/joystick_control: {input: 'buttons', axisA: 2, invert: false}
+# cycle through pose list
+# ds4 controller triangle button, button[2]
+# xbox controller Y button, button [3]
+button_map/cycle_control: {input: 'buttons', axisA: 3, invert: false}
+# toggle between 100% and 20% command velocity
+# ds4 controller share button, button[8]
+# xbox controller back button, button[6]
+button_map/change_speed: {input: 'buttons', axisA: 6, invert: false}
+# all drives go to zero
+# ds4 controller options button, button[9]
+# xbox controll start button, button[7]
+button_map/zero_position: {input: 'buttons', axisA: 7, invert: false}
+# change drive set being controlled
+# ds4 controller PS button, button[10]
+# xbox controller Xbox butt, button[8]
+button_map/change_drive_set: {input: 'buttons', axisA: 8, invert: false}
+
+# settings used in C++ control program that implements end-point control
+# toggle between joint by joint and end point control
+# ds4 controller square button, button[3]
+# xbox controll X button, button [2]
+button_map/control_mode: {input: 'buttons', axisA: 2, invert: false}
+# cycle through named poses
+# ds4 controller circle button, button[1]
+# xbox controller B button, button[1]
+button_map/named_cycle: {input: 'buttons', axisA: 1, invert: false}
+# cycle through pose list
+# ds4 controller triangle button, button[2]
+# xbox controller Y button, button[3]
+button_map/named_execute: {input: 'buttons', axisA: 3, invert: false}
+# toggle collision avoidance on/off
+# ds4 controller options button, button[9]
+# xbox controller start button, button[7]
+button_map/collision_enable: {input: 'buttons', axisA: 7, invert: false}

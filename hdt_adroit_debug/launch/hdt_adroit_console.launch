@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="debug" default="false" />
+  <arg name="fake_execution" default="false" />
+  
+  <node name="socketcan_bridge" pkg="socketcan_bridge"  type="socketcan_bridge_node" respawn="false" output="screen">
+    <param name="can_device" value="can0" />
+  </node>
+  
+  <param name="robot_name" value="hdt_arm"/>
+
+  <!-- load the hardware configuration -->
+  <!-- used by hdt_adroit_control package to map drive CAN ID's into named joints in ROS -->
+  <rosparam command="load" file="$(find hdt_adroit_debug)/config/hardware.yaml" />
+
+  <!-- load the controller configuration -->
+  <!-- used by hdt_adroit_control package, via ros controller library, to create position controllers for joints or arms with ROS names-->
+  <rosparam command="load" file="$(find hdt_adroit_debug)/config/controllers.yaml" />
+  
+
+  <!-- load the hardware interface 
+  <node name="adroit_control" pkg="hdt_adroit_control" type="adroit_control" respawn="false" output="screen">
+    <param name="robot_name" value="hdt_arm" /> 
+    <param name="fake_execution" value="$(arg fake_execution)" /> 
+    <param name="hdt_telem_enable" value="true" /> 
+    <param name="hdt_service_enable" value="true" /> 
+  </node>
+-->
+  <node name="adroit_debug" pkg="hdt_adroit_debug" type="hdt_adroit_console" respawn="false" output="screen">
+  </node>
+  
+    <node name="drive_controller" pkg="hdt_adroit_debug"  type="drive_controller.py" respawn="false" output="screen">
+  </node>
+  
+  <node name="rqt_dashboard" pkg="rqt_gui" type="rqt_gui" respawn="false" output="screen" args="--perspective-file $(find hdt_adroit_debug)/config/drive_control_rqt.perspective"/>
+  
+  
+</launch>

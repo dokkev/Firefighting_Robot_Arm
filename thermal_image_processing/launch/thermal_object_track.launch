@@ -1,0 +1,31 @@
+<launch>
+
+
+<!-- enable realsense -->
+ <include file="$(find realsense2_camera)/launch/rs_aligned_depth.launch">
+    <arg name="filters" default="pointcloud" />
+ </include>
+
+<!-- load realsense model -->
+ <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find realsense2_description)/urdf/test_d435_camera.urdf.xacro' use_nominal_extrinsics:=true add_plug:=true use_mesh:=true" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+    <arg name="gui" default="True" />
+    <param name="use_gui" value="$(arg gui)" />
+
+
+  <!-- start rqt_image_view for visualization -->
+ <node type="rqt_image_view" name="rqt_image_view" pkg="rqt_image_view" />
+
+ <node pkg="thermal_image_processing" type="combined_vision" name="combined_vision"/>
+ <node pkg="thermal_image_processing" type="get_depth" name="get_depth" />
+ <node pkg="thermal_image_processing" type="tf_listener" name="tf_listener" />
+
+ <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_broadcaster" args="0 0 0.01 0 0 0 1 base_link camera_link" />
+ <node pkg="tf2_ros" type="static_transform_publisher" name="world_broadcaster" args="0 0 0 0 0 0 1 world base_link" />
+
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find thermal_image_processing)/config/fire_track.rviz"/>
+
+
+
+</launch>

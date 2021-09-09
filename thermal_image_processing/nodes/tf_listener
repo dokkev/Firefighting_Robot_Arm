@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+import rospy
+import geometry_msgs.msg
+import math
+from std_msgs.msg import Float64
+import tf2_ros
+from thermal_image_processing.msg import xyz
+from thermal_image_processing.msg import point_coord
+
+
+
+class tfDealer:
+    def __init__ (self):
+        rospy.init_node("tf_listener")
+        rospy.wait_for_message('/point_coord', point_coord, timeout=10)
+        self.campos_pub = rospy.Publisher('/camera_position', xyz , queue_size=10)
+        self.firepos_pub = rospy.Publisher('/fire_position', xyz, queue_size=10)
+        self.point_coord_sub = rospy.Subscriber('/point_coord', point_coord, self.point_coord_callback)
+        
+        self.tfBuffer = tf2_ros.Buffer()
+        self.listener = tf2_ros.TransformListener(self.tfBuffer)
+        self.br = tf2_ros.TransformBroadcaster()
+        
+  
+        self.rate = rospy.Rate(10.0)
+
+    def point_coord_callback(self,data):
+        tf = geometry_msgs.msg.TransformStamped()
+        tf.header.stamp = rospy.Time.now()
+        tf.header.frame_id = "camera_link"
+        tf.child_frame_id = "fire"
+        # red = x, green = y, blue = z in Rviz Axis
+        tf.transform.translation.x = (data.depth / 1000) # mm -> m conversion
+        tf.transform.translation.y = -(data.x / 1000)
+        tf.transform.translation.z = -(data.y / 1000)
+        tf.transform.rotation.x = 0
+        tf.transform.rotation.y = 0
+        tf.transform.rotation.z = 0
+        tf.transform.rotation.w = 1
+        self.br.sendTransform(tf)
+        # print("fire tf published!")
+
+
+    
+    def main(self):
+        while not rospy.is_shutdown():
+            try:
+                # get transformation from camera to base_link
+                cam_trans = self.tfBuffer.lookup_transform("camera_link","base_link",rospy.Time())
+                fire_trans = self.tfBuffer.lookup_transform("fire","base_link",rospy.Time())
+                
+                # print(trans)
+            except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+
+                self.rate.sleep()
+                continue
+            # create empty 3D corrdinates points xyz
+            points = xyz()
+            # set traslation factors to points
+            points.x = cam_trans.transform.translation.x
+            points.y = cam_trans.transform.translation.y
+            points.z = cam_trans.transform.translation.z
+            # publish points to ROS topic
+            self.campos_pub.publish(points)
+
+            points2 = xyz()
+            points2.x = fire_trans.transform.translation.x
+            points2.y = fire_trans.transform.translation.y
+            points2.z = fire_trans.transform.translation.z
+            self.firepos_pub.publish(points2)
+
+
+
+            self.rate.sleep()
+
+
+if __name__ == '__main__':
+    D = tfDealer()
+    D.main()
+    rospy.spin()
+
+
+          

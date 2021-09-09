@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="debug" default="false" />
+  <arg name="side" default="dual" />
+  <arg name="controller_type" default="xbox" />
+
+  <!-- launch joystick -->
+  <node name="xbox_joystick" pkg="joy" type="joy_node">
+      <param name="dev" value="/dev/input/js0" />
+      <param name="deadzone" value="0.15" />
+      <param name="autorepeat_rate" value="10.0" />
+  </node>  
+  
+    <!-- launch space mouse -->
+  <include file="$(find spacenav_node)/launch/classic.launch"/>
+  
+  
+  <!--load parameter file mapping joystick axis to joints -->
+  <!--also configures button mapping for start/stop control, etc. -->
+  <!--<rosparam command="load" file="$(eval find('hdt_6dof_a24_pincer_description') + '/config/joystick_map_' + controller_type + '.yaml')" />-->
+    <rosparam command="load" file="$(find hdt_6dof_a24_pincer_description)/config/joystick_map_dual.yaml" />
+    
+  <!-- publish tf for the robot links -->
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+
+  <!-- start move group  -->
+  <include file="$(find hdt_6dof_a24_pincer_moveit_dual)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="info" value="true"/>
+    <arg name="fake_execution" value="false"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <!-- start rviz -->
+  <include file="$(find hdt_6dof_a24_pincer_moveit_dual)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <!-- start trigger_guard -->
+  <node name="trigger_guard" pkg="hdt_generic_joystick" type="trigger_guard" respawn="true" output="screen"/>
+  
+    <!-- parameters that define colors used by hdt_generic_joystick in Rviz -->
+  <rosparam command="load" file="$(find hdt_generic_joystick)/support_files/joystick_feedback_colors.yaml" />
+  
+<!--Start the control script.  Load in xacro for position limits -->
+  <node name="generic_joystick" pkg="hdt_generic_joystick" type="generic_joystick2" respawn="false" output="screen">
+    <param name="controller_prefix" value="hdt_arm"/>
+    <remap from="joy" to="guarded_joy"/>
+    <param name="use_spacemouse" value="false"/>
+    <param name="status_message_frame" value="leftbase_link"/>
+  </node>
+</launch>

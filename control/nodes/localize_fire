@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+from sensor_msgs.msg import PointCloud2
+from sensor_msgs import point_cloud2
+from scipy.integrate import quad
+import rospy
+import time
+import numpy as np
+
+
+des_vol = input('What is the desired volume:    ')
+
+
+xpoint = []
+ypoint = []
+zpoint = []
+
+def callback_pointcloud(data):
+    global volume
+    global x
+    global y
+    global z
+    assert isinstance(data, PointCloud2)
+    gen = point_cloud2.read_points(data, field_names=("x", "y", "z"), skip_nans=True) 
+
+    for p in gen:
+      xpoint.append(p[0])
+      ypoint.append(p[1])
+      zpoint.append(p[2]) 
+    x = max(xpoint) - min(xpoint)
+    y = max(ypoint) - min(ypoint)
+    cross_section = x*y
+
+    def f(z):
+        return cross_section
+
+    i = quad(f,min(zpoint),max(zpoint))
+    volume = i
+
+def main():
+    rospy.init_node('pcl_listener', anonymous=True)
+    rospy.Subscriber('/camera/depth/color/points', PointCloud2, callback_pointcloud)
+    rospy.sleep(10)
+    #rospy.spin()
+    print ("value of x : ", x)
+    print ("value of y : ", y)
+    # print ("value of z : ", z)
+    print ("Total initial volume is : ", volume)
+    remaining_volume = volume - float(des_vol)
+    quotient = remaining_volume/volume
+    percentage = quotient * 100
+    print("Remaining Volume needs to be completed : ",remaining_volume)
+    print("Remaining Percentage needs to be completed : ",percentage)
+
+if __name__ == "__main__":
+    main()

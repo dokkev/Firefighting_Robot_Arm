@@ -1,0 +1,13 @@
+uint8 INIT_STATE = 0
+uint8 PROGRAM_STATE = 1
+uint8 STARTUP_STATE = 2
+uint8 RUN_STATE = 3
+uint8 HOLD_STATE = 4
+uint8 SLEEP_STATE = 5
+uint8 FAULT_STATE = 6
+
+string name
+uint8 can_id
+uint8 state
+---
+uint32 ret
