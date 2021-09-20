@@ -20,4 +20,4 @@ Also, it provides serveral `rosservices` to control the robot
 
 
 ### Update on `thermal_image_processing`
-This package is updated for better sensing of fire (heat source). It can utilize `intel realsense D435` to localize the fire by combing thermal image, aligned color to depth image, and point cloud. You can checkout more detial at [Thermal_Object_3D_Tracking] repository!
+This package is updated for better sensing of fire (heat source). It can utilize `intel realsense D435` to localize the fire by combing thermal image, aligned color to depth image, and point cloud. You can checkout more detial at [Fire_3D_Tracking](https://github.com/dokkev/Fire_3D_Tracking) repository!
