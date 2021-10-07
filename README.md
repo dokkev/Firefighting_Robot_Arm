@@ -2,7 +2,7 @@
 [![1](http://img.youtube.com/vi/1XVxniZMIpI/0.jpg)](http://www.youtube.com/watch?v=1XVxniZMIpI)
 
 This is a repository for Autonomous Fire Fighting Robot Arm project.
-You can checkout insights about this project at my [portfolio](https://rubberdk.github.io/firefigther-robot/)
+You can checkout insights about this project at my [portfolio](https://dokkev.github.io/firefigther-robot/)
 Refer to the packages for more details for codes.
 
 Unfortunately, I cannot share source codes for HDT Adroit 6DOF A24 Pincer Manipulation. If you have a question about the robot, please contact [Northwestern University MSR Program](https://www.mccormick.northwestern.edu/robotics/)
